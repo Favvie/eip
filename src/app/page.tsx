@@ -1,101 +1,155 @@
-import Image from "next/image";
+"use client"
+
+import { useState, useEffect } from "react";
+import { ethers } from "ethers";
+
+
+
+
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  
+  const [connectedWalletAddress, setConnectedWalletAddress] = useState<string | null>(null)
+  
+  
+  
+  
+  
+  
+  const [balance, setBalance] = useState<string | null>(0)
+  const [chainId, setChainId] = useState<number | null>(0)
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+  const [accountChanged, setAccountChanged] = useState(null)
+  
+  async function initWallet(){
+    try {
+      // check if any wallet provider is installed. i.e metamask xdcpay etc
+      // setWalletConnectLoader(true)
+      if (typeof window.ethereum === 'undefined') {
+        console.log("Please install wallet.")
+        alert("Please install wallet.")
+        
+        return
+      }
+      else{
+        
+        const providerVar = new ethers.BrowserProvider(window.ethereum);
+        const accounts: string[] = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        
+        console.log(accounts[0])
+        setConnectedWalletAddress(accounts[0])
+
+        return
+      }
+
+    } catch (error) {
+      console.log("initwallet error", error)
+      
+      return
+    }
+  }
+
+
+
+  async function switchNetwork() {
+    try {
+      const targetNetwork = {
+        chainId: '0x1', 
+        chainName: 'Ethereum Mainnet',
+        nativeCurrency: {
+          name: 'Ether',
+          symbol: 'ETH',
+          decimals: 18,
+        },
+        rpcUrls: ['https://ethereum-mainnet.gateway.tatum.io']
+        ,
+        blockExplorerUrls: ['https://etherscan.io'],
+      };
+
+      await window.ethereum.request({
+        method: 'wallet_addEthereumChain',
+        params: [targetNetwork],
+      });
+
+      alert("Network switched successfully.");
+    } catch (error) {
+      console.log("switchNetwork error", error);
+      alert("Failed to switch network.");
+    }
+  }
+
+  async function getBalance() {
+    if (window.ethereum) {
+        try {
+          const balance = await window.ethereum.request({ method: 'eth_getBalance', params: [connectedWalletAddress, 'latest'] });
+          const balanceInEth = ethers.formatEther(balance)
+          setBalance(balanceInEth)
+          console.log(balance)
+        }
+        catch (error) {
+          console.log("getBalance error", error)
+          alert("Failed to get balance.")
+        }
+    }
+  }
+
+  async function getChainId() {
+    if (window.ethereum) {
+        try {
+          
+          const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+          console.log(chainId)
+          setChainId(parseInt(chainId, 16))
+        }
+        catch (error) {
+          console.log("getBalance error", error)
+          alert("Failed to get balance.")
+        }
+    }
+  }
+
+
+
+  async function connectEXC(){
+    try {
+      // setWalletConnectLoader(true)
+      const connect = await window.ethereum.on("accountsChanged", (accounts: string[]) => {
+        setAccountChanged(connect)
+        console.log(accounts)
+      });
+      
+    } catch (error) {
+      alert(`connectEXC error ${error}`)
+      // setWalletConnectLoader(false)
+      return
+    }
+  }
+
+  useEffect(() => {
+    initWallet();
+  }, [])
+  return (
+    
+  <div className='m-6 space-y-4'>
+    <h1 className="text-gray-700 text-3xl font-bold">
+      Storage Frontend Demo
+    </h1>
+    <button onClick={initWallet} className='w-[150px] px-4 py-1 bg-slate-300 hover:bg-slate-500 flex justify-around transition-all w-32' >Connect Wallet</button>
+    <p>Connected Wallet: {connectedWalletAddress}</p>
+    <button onClick={connectEXC} className='px-4 py-1 bg-slate-300 hover:bg-slate-500 flex justify-around transition-all w-32' > 
+    { accountChanged ? accountChanged : "CHANGE ACCOUNTS"
+            }
+    </button>
+    
+    <button onClick={getBalance} className='w-[150px] px-4 py-1 bg-slate-300 hover:bg-slate-500 flex justify-around transition-all w-32' >Get Balance</button>
+    <p>Balance: {balance} ETH</p>
+
+    <button onClick={getChainId} className='w-[150px] px-4 py-1 bg-slate-300 hover:bg-slate-500 flex justify-around transition-all w-32' >Get Chain ID</button>
+    <p>Chain ID: {chainId}</p>
+
+    <button onClick={switchNetwork} className='w-[150px] px-4 py-1 bg-slate-300 hover:bg-slate-500 flex justify-around transition-all w-32' >Switch Network</button>
+    
+   </div>
+  
   );
 }
